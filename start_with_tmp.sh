@@ -24,5 +24,5 @@ export PYTHON_EGG_CACHE="/tmp"
 python3 python_patch.py || python python_patch.py || echo "Failed to run python patch"
 
 # Execute the original command with all arguments
-echo "Running original command: $@"
+echo "Running original command: $*"
 exec "$@" 
