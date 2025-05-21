@@ -51,3 +51,6 @@ tmp/
 .tmprc
 
 # Temp setup files
+xqwatcher_helper.py
+init_edx.py
+edx/
