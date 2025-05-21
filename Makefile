@@ -1,76 +1,97 @@
 APP ?= smaystr-bot
-REGISTRY ?= quay.io/smaystr
-VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)-$(shell git rev-parse --short HEAD)
-GOARCH ?= amd64
+VERSION := $(shell git describe --tags --always || echo "v0.0.0")
+REGISTRY ?= smaystr
+
+## Змінні для кросс-компіляції
 GOOS ?= linux
-# Comma-separated list as required by docker buildx (container images support only linux)
-PLATFORMS = linux/amd64,linux/arm64
+GOARCH ?= amd64
+TARGETS ?= $(GOOS)-$(GOARCH)
+PLATFORMS ?= linux-amd64,linux-arm64
 
-# Ensure tempdir exists before any target runs
+## Налаштування Docker
+TAG ?= $(VERSION)
+PUSH_IMAGE ?= yes
+DOCKER ?= docker
+
+## Налаштування темпорарі директорій
+export TMPDIR := $(shell mkdir -p .tmp && chmod -R 777 .tmp && echo "$${PWD}/.tmp")
+export TMP := $(TMPDIR)
+export TEMP := $(TMPDIR)
+
+## Забезпечує наявність тимчасових директорій
 .PHONY: ensure-tmp
-
-# Run Go-based temp directory setup helper
-tmp-setup:
-	@go run tools/tmp_setup.go
-
 ensure-tmp:
-	@mkdir -p "$(CURDIR)/.tmp" && chmod -R 1777 "$(CURDIR)/.tmp"
-	@# Встановлюємо TMPDIR і для поточного процесу make, і для bash
-	@export TMPDIR="$(CURDIR)/.tmp" && echo 'export TMPDIR="$(CURDIR)/.tmp"' > .tmprc
-	@echo "Created $(CURDIR)/.tmp"
-	@# Робимо додаткові каталоги на всякий випадок
-	@mkdir -p /tmp || mkdir -p tmp || true 
-	@chmod 1777 /tmp tmp 2>/dev/null || true
+	@mkdir -p .tmp tmp /tmp 2>/dev/null || true
+	@chmod -R 777 .tmp tmp 2>/dev/null || true
+	@echo "Temporary directories prepared: $(TMPDIR)"
 
-# Викликаємо Go-хелпер для temp dir
-	@go run tools/tmp_setup.go || true
+## Лістинг існуючих docker образів
+.PHONY: images
+images:
+	@$(DOCKER) images "$(APP)*" --format "{{.Repository}}:{{.Tag}} ({{.ID}}) {{.Size}}"
 
-format: ensure-tmp
-	gofmt -s -w ./
+## Форматування коду
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@gofmt -s -w .
 
-deps: ensure-tmp
-	go mod tidy
-	go mod download
+## Залежності
+.PHONY: deps
+deps:
+	@echo "Updating dependencies..."
+	@go mod tidy
+	@go mod download
 
-lint: ensure-tmp
-	staticcheck ./...
+## Перевірка коду
+.PHONY: lint
+lint:
+	@echo "Running static checks..."
+	@staticcheck ./...
 
+## Тести (з перевіркою race)
+.PHONY: test
 test: ensure-tmp
-	go test -v -race ./...
+	@echo "Running tests..."
+	@go test -race ./...
 
-# Крос-компіляція для різних платформ
-build-linux-amd64: ensure-tmp
-	GOOS=linux GOARCH=amd64 go build -o $(APP)-linux-amd64 .
-build-linux-arm64: ensure-tmp
-	GOOS=linux GOARCH=arm64 go build -o $(APP)-linux-arm64 .
-build-darwin-amd64: ensure-tmp
-	GOOS=darwin GOARCH=amd64 go build -o $(APP)-darwin-amd64 .
-build-darwin-arm64: ensure-tmp
-	GOOS=darwin GOARCH=arm64 go build -o $(APP)-darwin-arm64 .
-build-windows-amd64: ensure-tmp
-	GOOS=windows GOARCH=amd64 go build -o $(APP)-windows-amd64.exe .
-build-windows-arm64: ensure-tmp
-	GOOS=windows GOARCH=arm64 go build -o $(APP)-windows-arm64.exe .
+## Білд для поточної платформи
+.PHONY: build
+build: ensure-tmp
+	@echo "Building $(APP)..."
+	@CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(APP)-$(GOOS)-$(GOARCH) -ldflags "-X main.version=$(VERSION)"
+	@ln -sf $(APP)-$(GOOS)-$(GOARCH) $(APP)
+	@echo "Binary: $(APP)-$(GOOS)-$(GOARCH)"
 
-# Мультиархітектурний Docker buildx
+## Docker образ
+.PHONY: image
 image: ensure-tmp
-	docker buildx build --platform $(PLATFORMS) -t $(REGISTRY)/$(APP):$(VERSION) --push .
+	@echo "Building Docker image $(REGISTRY)/$(APP):$(TAG)..."
+	@$(DOCKER) build -t $(REGISTRY)/$(APP):$(TAG) .
+	@$(DOCKER) tag $(REGISTRY)/$(APP):$(TAG) ghcr.io/$(REGISTRY)/$(APP):$(TAG)
+	@echo "Created image: $(REGISTRY)/$(APP):$(TAG)"
 
+## Пуш образу в реєстр
+.PHONY: push
 push: ensure-tmp
-	docker push $(REGISTRY)/$(APP):$(VERSION)
+	@echo "Pushing $(REGISTRY)/$(APP):$(TAG) to registry..."
+	@$(DOCKER) push ghcr.io/$(REGISTRY)/$(APP):$(TAG)
+	@echo "Pushed: ghcr.io/$(REGISTRY)/$(APP):$(TAG)"
 
-clean: ensure-tmp
-	rm -rf $(APP)* build/
-	docker rmi $(REGISTRY)/$(APP):$(VERSION) || true
+## Мультиплатформенний білд через docker buildx
+.PHONY: buildx
+buildx: ensure-tmp
+	@echo "Building multi-platform image for: $(PLATFORMS)..."
+	@$(DOCKER) buildx build --platform $(PLATFORMS) -t ghcr.io/$(REGISTRY)/$(APP):$(TAG) --push .
+	@echo "Built and pushed multi-platform image: ghcr.io/$(REGISTRY)/$(APP):$(TAG)"
 
-docker-build: ensure-tmp
-	docker build -t $(APP):latest .
-
-build: deps format ensure-tmp
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(APP) .
-
-images: ensure-tmp
-	docker images | grep smaystr-bot
+## Очищення артефактів
+.PHONY: clean
+clean:
+	@echo "Cleaning up..."
+	@rm -f $(APP)
+	@rm -f $(APP)-*
+	@rm -rf .tmp tmp
 
 # --- Simple alias targets required by external CI checks ---
 .PHONY: linux arm macos macos-arm windows windows-arm
