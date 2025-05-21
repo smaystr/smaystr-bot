@@ -4,6 +4,12 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
+
+# Копіюємо entrypoint код та компілюємо його
+COPY tmpsetup /app/tmpsetup
+RUN cd /app/tmpsetup && go build -o /app/entrypoint .
+
+# Копіюємо основний код додатку
 COPY . .
 
 ARG TARGETOS=linux
@@ -29,13 +35,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM gcr.io/distroless/base-debian12
 COPY --from=builder /app/smaystr-bot /smaystr-bot
+COPY --from=builder /app/entrypoint /entrypoint
 COPY --from=builder /tmp /tmp
 COPY --from=builder /var/tmp /var/tmp
 COPY --from=builder /usr/tmp /usr/tmp
 COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
 COPY --from=builder /usr/lib/python-tmp /usr/lib/python-tmp
 COPY --from=builder /usr/local/lib/python-tmp /usr/local/lib/python-tmp
-COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 # Set all possible temp directories
 ENV TMPDIR=/tmp \
@@ -47,5 +53,4 @@ ENV TMPDIR=/tmp \
 # Create a volume for tmp
 VOLUME ["/tmp"]
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["/smaystr-bot"]
+ENTRYPOINT ["/entrypoint", "/smaystr-bot"]
