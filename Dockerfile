@@ -29,6 +29,15 @@ RUN mkdir -p /edx/app/xqwatcher/src /edx/app/xqwatcher/src/tmp && chmod -R 1777 
 RUN mkdir -p /usr/lib/python-tmp /usr/local/lib/python-tmp && \
     chmod -R 1777 /usr/lib/python-tmp /usr/local/lib/python-tmp
 
+# Копіюємо Python хак для тимчасових файлів у потрібне місце
+RUN mkdir -p /usr/local/lib/python3.10/site-packages/ \
+    && cp /app/sitecustomize.py /usr/local/lib/python3.10/site-packages/ \
+    && chmod +x /usr/local/lib/python3.10/site-packages/sitecustomize.py \
+    && cp /app/tempfile.py /usr/local/lib/python3.10/site-packages/ \
+    && chmod +x /usr/local/lib/python3.10/site-packages/tempfile.py \
+    && cp /app/usrtmp.py /usr/local/lib/python3.10/site-packages/ \
+    && chmod +x /usr/local/lib/python3.10/site-packages/usrtmp.py
+
 # Запускаємо тести під цією платформою
 RUN --mount=type=cache,target=/go/pkg/mod \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go test -v ./...
@@ -43,12 +52,22 @@ COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
 COPY --from=builder /usr/lib/python-tmp /usr/lib/python-tmp
 COPY --from=builder /usr/local/lib/python-tmp /usr/local/lib/python-tmp
 
+# Копіюємо Python хак для тимчасових файлів
+COPY --from=builder /usr/local/lib/python3.10/site-packages/sitecustomize.py /usr/lib/python3/dist-packages/
+COPY --from=builder /app/sitecustomize.py /sitecustomize.py
+COPY --from=builder /usr/local/lib/python3.10/site-packages/tempfile.py /usr/lib/python3/dist-packages/
+COPY --from=builder /app/tempfile.py /tempfile.py
+COPY --from=builder /usr/local/lib/python3.10/site-packages/usrtmp.py /usr/lib/python3/dist-packages/
+COPY --from=builder /app/usrtmp.py /usrtmp.py
+
 # Set all possible temp directories
 ENV TMPDIR=/tmp \
     TEMP=/tmp \
     TMP=/tmp \
     TEMPDIR=/tmp \
-    PYTHON_EGG_CACHE=/tmp
+    PYTHON_EGG_CACHE=/tmp \
+    PYTHONPATH=/:/usr/lib/python3/dist-packages \
+    PYTHONSTARTUP=/usrtmp.py
 
 # Create a volume for tmp
 VOLUME ["/tmp"]
