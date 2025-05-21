@@ -29,6 +29,15 @@ RUN mkdir -p /edx/app/xqwatcher/src /edx/app/xqwatcher/src/tmp && chmod -R 1777 
 RUN mkdir -p /usr/lib/python-tmp /usr/local/lib/python-tmp && \
     chmod -R 1777 /usr/lib/python-tmp /usr/local/lib/python-tmp
 
+# Створюємо додаткові директорії для більшої надійності
+RUN mkdir -p /dev/shm /run/shm /app/.tmp /.tmp && \
+    chmod -R 1777 /dev/shm /run/shm /app/.tmp /.tmp && \
+    echo "Created extra tmp directories"
+
+# Створюємо скрипт для діагностики проблем з тимчасовими директоріями
+RUN echo '#!/usr/bin/env python3\nimport os\nimport sys\nimport tempfile\nprint("Current directory:", os.getcwd())\nprint("Temp dir from tempfile:", tempfile.gettempdir())\nprint("TMPDIR:", os.environ.get("TMPDIR"))\nprint("TMP:", os.environ.get("TMP"))\nprint("TEMP:", os.environ.get("TEMP"))\nfor d in ["/tmp", "/var/tmp", "/usr/tmp", "/edx/app/xqwatcher/src", "/dev/shm"]:\n    exists = os.path.exists(d)\n    writable = os.access(d, os.W_OK) if exists else False\n    print(f"{d}: exists={exists}, writable={writable}")\ntry:\n    fd, path = tempfile.mkstemp()\n    print(f"Created temp file: {path}")\n    os.close(fd)\n    os.unlink(path)\nexcept Exception as e:\n    print(f"Error creating temp file: {e}")' > /app/diagnose_tmp.py && \
+    chmod +x /app/diagnose_tmp.py
+
 # Перевіряємо, що всі директорії доступні для запису
 RUN echo "Test write" > /tmp/test.txt && \
     echo "Test write" > /var/tmp/test.txt && \
@@ -60,12 +69,17 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM gcr.io/distroless/base-debian12
 COPY --from=builder /app/smaystr-bot /smaystr-bot
 COPY --from=builder /app/entrypoint /entrypoint
+COPY --from=builder /app/diagnose_tmp.py /diagnose_tmp.py
 COPY --from=builder /tmp /tmp
 COPY --from=builder /var/tmp /var/tmp
 COPY --from=builder /usr/tmp /usr/tmp
 COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
 COPY --from=builder /usr/lib/python-tmp /usr/lib/python-tmp
 COPY --from=builder /usr/local/lib/python-tmp /usr/local/lib/python-tmp
+COPY --from=builder /dev/shm /dev/shm
+COPY --from=builder /run/shm /run/shm
+COPY --from=builder /app/.tmp /app/.tmp
+COPY --from=builder /.tmp /.tmp
 
 # Копіюємо додаткові директорії з повними правами 
 COPY --from=builder /tmp_extra /tmp
