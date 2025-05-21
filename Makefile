@@ -1,8 +1,9 @@
 APP ?= smaystr-bot
-REGISTRY ?= smaystr
+REGISTRY ?= quay.io/smaystr
 VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)-$(shell git rev-parse --short HEAD)
-TARGETOS ?= linux
 GOARCH ?= amd64
+GOOS ?= linux
+PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
 format:
 	gofmt -s -w ./
@@ -17,17 +18,31 @@ lint:
 test:
 	go test -v -race ./...
 
-build: deps format
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${GOARCH} go build -v -o ${APP} -ldflags "-X=github.com/smaystr/smaystr-bot/cmd.appVersion=${VERSION}"
+# Крос-компіляція для різних платформ
+build-linux-amd64:
+	GOOS=linux GOARCH=amd64 go build -o $(APP)-linux-amd64 .
+build-linux-arm64:
+	GOOS=linux GOARCH=arm64 go build -o $(APP)-linux-arm64 .
+build-darwin-amd64:
+	GOOS=darwin GOARCH=amd64 go build -o $(APP)-darwin-amd64 .
+build-darwin-arm64:
+	GOOS=darwin GOARCH=arm64 go build -o $(APP)-darwin-arm64 .
+build-windows-amd64:
+	GOOS=windows GOARCH=amd64 go build -o $(APP)-windows-amd64.exe .
 
-image: build
-	docker build -t ${REGISTRY}/${APP}:${VERSION}-${GOARCH} .
+# Мультиархітектурний Docker buildx
+image:
+	docker buildx build --platform $(PLATFORMS) -t $(REGISTRY)/$(APP):$(VERSION) --push .
 
 push:
-	docker push ${REGISTRY}/${APP}:${VERSION}-${GOARCH}
+	docker push $(REGISTRY)/$(APP):$(VERSION)
 
 clean:
-	rm -rf ${APP} build/
+	rm -rf $(APP)* build/
+	docker rmi $(REGISTRY)/$(APP):$(VERSION) || true
 
 docker-build:
-	docker build -t ${APP}:latest .
+	docker build -t $(APP):latest .
+
+build: deps format
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(APP) .

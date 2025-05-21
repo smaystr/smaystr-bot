@@ -205,3 +205,17 @@ make lint          # лінтер
 ```
 
 ---
+
+## Кроскомпіляція
+
+Для збирання Go-бінарника під різні платформи використовуйте відповідні цілі Makefile:
+
+```bash
+make build-linux-amd64     # Linux x86_64
+make build-linux-arm64     # Linux ARM64
+make build-darwin-amd64    # macOS x86_64
+make build-darwin-arm64    # macOS ARM (Apple Silicon)
+make build-windows-amd64   # Windows x86_64 (exe)
+```
+
+Усі білди з'являться у поточній директорії з відповідним суфіксом у назві файлу.
