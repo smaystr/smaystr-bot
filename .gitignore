@@ -49,3 +49,5 @@ smaystr-bot*
 /.tmp/
 tmp/
 .tmprc
+
+# Temp setup files

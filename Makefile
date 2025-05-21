@@ -8,14 +8,22 @@ PLATFORMS = linux/amd64,linux/arm64
 
 # Ensure tempdir exists before any target runs
 .PHONY: ensure-tmp
+
+# Run Go-based temp directory setup helper
+tmp-setup:
+	@go run tools/tmp_setup.go
+
 ensure-tmp:
 	@mkdir -p "$(CURDIR)/.tmp" && chmod -R 1777 "$(CURDIR)/.tmp"
 	@# Встановлюємо TMPDIR і для поточного процесу make, і для bash
-	@export TMPDIR="$(CURDIR)/.tmp" && echo "export TMPDIR=\"$(CURDIR)/.tmp\"" > .tmprc
+	@export TMPDIR="$(CURDIR)/.tmp" && echo 'export TMPDIR="$(CURDIR)/.tmp"' > .tmprc
 	@echo "Created $(CURDIR)/.tmp"
 	@# Робимо додаткові каталоги на всякий випадок
 	@mkdir -p /tmp || mkdir -p tmp || true 
 	@chmod 1777 /tmp tmp 2>/dev/null || true
+
+# Викликаємо Go-хелпер для temp dir
+	@go run tools/tmp_setup.go || true
 
 format: ensure-tmp
 	gofmt -s -w ./
