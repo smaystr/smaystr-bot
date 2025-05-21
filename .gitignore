@@ -55,6 +55,6 @@ tmp/
 # Temp setup files
 xqwatcher_helper.py
 init_edx.py
-edx/
+/edx/
 backup_py_files/
 __pycache__/
