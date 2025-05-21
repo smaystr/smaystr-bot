@@ -1,60 +1,54 @@
 """
-Python automatically imports this module on startup.
-It's designed to fix temporary directory issues for edX/testing environments.
+sitecustomize.py - цей файл автоматично імпортується Python при запуску
+Розмістіть його в корені репозиторію
 """
 import os
 import sys
-import tempfile
+import atexit
 
-# Log that we're running
-print("sitecustomize.py: Starting automatic tempdir fix")
+# Додаємо поточну директорію в PYTHONPATH
+sys.path.insert(0, os.getcwd())
 
-# Create and use a list of possible temporary directories
-def setup_tempdir():
-    possible_dirs = [
-        # Current directory tmp options
-        os.path.join(os.getcwd(), ".tmp"),
-        os.path.join(os.getcwd(), "tmp"),
-        # Standard system directories
-        "/tmp", 
-        "/var/tmp",
-        "/usr/tmp",
-        # edX specific paths
-        "/edx/app/xqwatcher/src/tmp",
-        "/edx/tmp",
-        # Home directory
-        os.path.expanduser("~/tmp")
-    ]
+print("GlobalLogic TMP fix: Initializing...")
+
+# Створюємо тимчасову директорію в поточній директорії
+tmp_dir = os.path.join(os.getcwd(), '.tmp')
+try:
+    os.makedirs(tmp_dir, exist_ok=True)
+    print(f"GlobalLogic TMP fix: Created directory {tmp_dir}")
     
-    # Try to create and use each directory
-    for dir_path in possible_dirs:
+    # Встановлюємо змінні середовища
+    os.environ['TMPDIR'] = tmp_dir
+    os.environ['TMP'] = tmp_dir
+    os.environ['TEMP'] = tmp_dir
+    
+    # Патчимо tempfile
+    import tempfile
+    tempfile.tempdir = tmp_dir
+    
+    # Заміна функції gettempdir
+    orig_gettempdir = tempfile.gettempdir
+    def patched_gettempdir():
+        return tmp_dir
+    tempfile.gettempdir = patched_gettempdir
+    
+    # Тест
+    test_fd, test_path = tempfile.mkstemp()
+    os.close(test_fd)
+    os.unlink(test_path)
+    print(f"GlobalLogic TMP fix: Successfully patched tempfile, using {tmp_dir}")
+    
+    # Функція очищення при завершенні
+    def cleanup():
         try:
-            # Create directory with world-writable permissions
-            os.makedirs(dir_path, exist_ok=True)
-            os.chmod(dir_path, 0o1777)  # rwxrwxrwt - world writable with sticky bit
-            
-            # Set as environment variables
-            os.environ["TMPDIR"] = dir_path
-            os.environ["TEMP"] = dir_path
-            os.environ["TMP"] = dir_path
-            
-            # CRITICAL: Directly patch tempfile module
-            tempfile.tempdir = dir_path
-            
-            # Verify it works by creating a test file
-            test_fd, test_path = tempfile.mkstemp(prefix="test_")
-            os.close(test_fd)
-            os.unlink(test_path)
-            
-            print(f"sitecustomize.py: Successfully set up temp directory: {dir_path}")
-            print(f"sitecustomize.py: tempfile.gettempdir() = {tempfile.gettempdir()}")
-            return True
-        except Exception as e:
-            print(f"sitecustomize.py: Failed to set up {dir_path}: {e}", file=sys.stderr)
+            import shutil
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                print(f"GlobalLogic TMP fix: Cleaned up {tmp_dir}")
+        except:
+            pass
     
-    # If we get here, none of the directories worked
-    print("sitecustomize.py: CRITICAL - Could not find any usable temp directory", file=sys.stderr)
-    return False
-
-# Run the setup immediately on import
-setup_tempdir()
+    atexit.register(cleanup)
+    
+except Exception as e:
+    print(f"GlobalLogic TMP fix: ERROR setting up tmp directory: {e}")
