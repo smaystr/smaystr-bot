@@ -43,9 +43,6 @@ ENV TMPDIR=/tmp \
     TEMPDIR=/tmp \
     PYTHON_EGG_CACHE=/tmp
 
-# Додаємо користувача для Docker best practices
-USER 1000:1000
-
 # Create a volume for tmp
 VOLUME ["/tmp"]
 
