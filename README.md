@@ -81,7 +81,9 @@ If you encounter an error like:
 [Errno 2] No usable temporary directory found in ['/tmp', '/var/tmp', '/usr/tmp', ...]
 ```
 
-Use the provided wrapper script to ensure temporary directories are available:
+You have several options to fix this:
+
+### Option 1: Use the wrapper script
 ```
 ./start_with_tmp.sh <your-command>
 ```
@@ -91,6 +93,25 @@ For example:
 ./start_with_tmp.sh go test ./...
 ./start_with_tmp.sh python -c "import tempfile; print(tempfile.gettempdir())"
 ```
+
+### Option 2: Import the Python patch directly
+For Python code, add this at the beginning of your main file:
+```python
+import setup_env  # Налаштує тимчасові каталоги
+# Ваш код далі...
+```
+
+### Option 3: For edX/GlobalLogic Python Tests
+For tests in GlobalLogic environment, use the aggressive tempfile patch:
+```python
+import xqwatcher_tempfile_patch
+# Ваш код далі...
+```
+
+This patch completely replaces the Python tempfile module with a custom implementation that:
+1. Checks multiple possible temp directories, including the current directory
+2. Creates missing directories if needed with proper permissions
+3. Falls back to a `.xqtmp` directory in the current working directory if all else fails
 
 This is particularly helpful in restricted environments where standard temporary directories might not be accessible.
 
