@@ -3,7 +3,8 @@ REGISTRY ?= quay.io/smaystr
 VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)-$(shell git rev-parse --short HEAD)
 GOARCH ?= amd64
 GOOS ?= linux
-PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
+# Comma-separated list as required by docker buildx (container images support only linux)
+PLATFORMS = linux/amd64,linux/arm64
 
 format:
 	gofmt -s -w ./
