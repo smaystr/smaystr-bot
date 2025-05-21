@@ -13,11 +13,15 @@ ARG APP=smaystr-bot
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/$APP .
 RUN ls -l /app
 
-# Ensure a world-writable tmp dir that will be copied to the runtime image.
-RUN mkdir -p /tmp /var/tmp /usr/tmp && chmod -R 1777 /tmp /var/tmp /usr/tmp
+# Створюємо і налаштовуємо усі можливі tmp-каталоги з правильними правами доступу
+RUN mkdir -p /tmp /var/tmp /usr/tmp /dev/shm && chmod -R 1777 /tmp /var/tmp /usr/tmp /dev/shm
 
 # Create edX directories as well
-RUN mkdir -p /edx/app/xqwatcher/src/tmp && chmod -R 1777 /edx/app/xqwatcher/src/tmp
+RUN mkdir -p /edx/app/xqwatcher/src /edx/app/xqwatcher/src/tmp && chmod -R 1777 /edx/app/xqwatcher/src
+
+# Переконуємось, що Python може знайти свій tmp
+RUN mkdir -p /usr/lib/python2.7/tmp /usr/lib/python3/tmp /usr/local/lib/python/tmp && \
+    chmod -R 1777 /usr/lib/python2.7/tmp /usr/lib/python3/tmp /usr/local/lib/python/tmp
 
 # Запускаємо тести під цією платформою
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -28,14 +32,22 @@ COPY --from=builder /app/smaystr-bot /smaystr-bot
 COPY --from=builder /tmp /tmp
 COPY --from=builder /var/tmp /var/tmp
 COPY --from=builder /usr/tmp /usr/tmp
-COPY --from=builder /edx /edx
+COPY --from=builder /dev/shm /dev/shm
+COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
+COPY --from=builder /usr/lib/python* /usr/lib/
+COPY --from=builder /usr/local/lib/python /usr/local/lib/python
 
 # Set all possible temp directories
 ENV TMPDIR=/tmp \
     TEMP=/tmp \
-    TMP=/tmp
+    TMP=/tmp \
+    TEMPDIR=/tmp \
+    PYTHON_EGG_CACHE=/tmp
+
+# Додаємо користувача для Docker best practices
+USER 1000:1000
 
 # Create a volume for tmp
-VOLUME ["/tmp"]
+VOLUME ["/tmp", "/var/tmp", "/usr/tmp", "/edx/app/xqwatcher/src/tmp"]
 
 ENTRYPOINT ["/smaystr-bot"]
