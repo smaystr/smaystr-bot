@@ -21,7 +21,7 @@ export TEMPDIR="/tmp"
 export PYTHON_EGG_CACHE="/tmp"
 
 # Run the Python patcher
-python3 python_patch.py || python python_patch.py || echo "Failed to run python patch"
+python3 python_helpers/python_patch.py || python python_helpers/python_patch.py || echo "Failed to run python patch"
 
 # Execute the original command with all arguments
 echo "Running original command: $*"
