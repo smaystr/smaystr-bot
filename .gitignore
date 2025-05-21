@@ -56,3 +56,5 @@ tmp/
 xqwatcher_helper.py
 init_edx.py
 edx/
+backup_py_files/
+__pycache__/
