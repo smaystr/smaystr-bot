@@ -51,6 +51,8 @@ tmp/
 .var_tmp/
 .usr_tmp/
 .tmprc
+.gl_tmp/
+.hwtmp/
 
 # Temp setup files
 xqwatcher_helper.py
