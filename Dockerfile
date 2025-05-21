@@ -10,19 +10,13 @@ ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG APP=smaystr-bot
 
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/$APP .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/$APP .
+RUN ls -l /app
 
 # Запускаємо тести під цією платформою
 RUN --mount=type=cache,target=/go/pkg/mod \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go test -v ./...
 
-FROM scratch
-ARG APP=smaystr-bot
-COPY --from=builder /app/$APP /$APP
-
-# ---- runtime stage ----
 FROM gcr.io/distroless/base-debian12
-USER nonroot:nonroot
-WORKDIR /app
-ENV TELE_TOKEN=""
+COPY --from=builder /app/smaystr-bot /smaystr-bot
 ENTRYPOINT ["/smaystr-bot"]
