@@ -74,6 +74,26 @@ docker compose logs -f bot
 make test          # or simply `go test ./...`
 ```
 
+## Temporary Directory Issues
+
+If you encounter an error like:
+```
+[Errno 2] No usable temporary directory found in ['/tmp', '/var/tmp', '/usr/tmp', ...]
+```
+
+Use the provided wrapper script to ensure temporary directories are available:
+```
+./start_with_tmp.sh <your-command>
+```
+
+For example:
+```
+./start_with_tmp.sh go test ./...
+./start_with_tmp.sh python -c "import tempfile; print(tempfile.gettempdir())"
+```
+
+This is particularly helpful in restricted environments where standard temporary directories might not be accessible.
+
 ## Project Layout
 
 ```
