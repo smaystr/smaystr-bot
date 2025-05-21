@@ -43,4 +43,4 @@ logs/
 *.log.* 
 
 # Go build artefacts
-smaystr-bot
+smaystr-bot*
