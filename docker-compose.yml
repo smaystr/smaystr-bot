@@ -7,6 +7,15 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # Add tmpfs volumes for temporary files access
+    volumes:
+      - ./.tmp:/tmp
+      - ./.var_tmp:/var/tmp
+      - ./.usr_tmp:/usr/tmp
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /var/tmp:exec,mode=1777
+      - /usr/tmp:exec,mode=1777
     # optional health-check – ping via Telegram API could be scripted
     # healthcheck:
     #   test: ["CMD", "/app/smaystr-bot", "--health"]

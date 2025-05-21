@@ -48,6 +48,8 @@ smaystr-bot*
 # CI/CD temp directories
 /.tmp/
 tmp/
+.var_tmp/
+.usr_tmp/
 .tmprc
 
 # Temp setup files
