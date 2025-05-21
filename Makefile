@@ -50,3 +50,13 @@ build: deps format
 
 images:
 	docker images | grep smaystr-bot
+
+# --- Simple alias targets required by external CI checks ---
+.PHONY: linux arm macos macos-arm windows windows-arm
+
+linux: build-linux-amd64
+arm: build-linux-arm64
+macos: build-darwin-amd64
+macos-arm: build-darwin-arm64
+windows: build-windows-amd64
+windows-arm: build-windows-arm64
