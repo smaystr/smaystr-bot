@@ -7,11 +7,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    # Add tmpfs volumes for temporary files access
-    volumes:
-      - ./.tmp:/tmp
-      - ./.var_tmp:/var/tmp
-      - ./.usr_tmp:/usr/tmp
+    # Temporary directories as tmpfs volumes
     tmpfs:
       - /tmp:exec,mode=1777
       - /var/tmp:exec,mode=1777
