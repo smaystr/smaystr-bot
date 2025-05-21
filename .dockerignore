@@ -1,0 +1,14 @@
+# build artifacts
+smaystr-bot
+/build/
+/dist/
+
+# VCS
+.git
+
+# IDE / editor
+.idea/
+.vscode/
+
+# OS files
+.DS_Store 

@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    image: smaystr-bot:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    # optional health-check – ping via Telegram API could be scripted
+    # healthcheck:
+    #   test: ["CMD", "/app/smaystr-bot", "--health"]
+    #   interval: 30s
+    #   timeout: 5s
+    #   retries: 3 
