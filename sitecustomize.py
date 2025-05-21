@@ -57,4 +57,4 @@ def setup_tempdir():
     return False
 
 # Run the setup immediately on import
-setup_tempdir() 
+setup_tempdir()
