@@ -46,3 +46,6 @@ docker-build:
 
 build: deps format
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(APP) .
+
+images:
+	docker images | grep smaystr-bot
