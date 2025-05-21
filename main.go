@@ -2,101 +2,43 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/smaystr/smaystr-bot/cmd"
 )
 
+// init створює всі можливі тимчасові директорії
 func init() {
-	// Attempt to create tmp directories before any other code executes
-	fmt.Println("Creating temporary directories...")
-
-	// Перевіряємо чи існують каталоги, не намагаємося змінювати права
-
-	// Визначаємо можливі tmp каталоги в порядку пріоритету
-	tmpDirs := []string{
-		"/tmp",                     // Стандартний Linux tmp
-		"/var/tmp",                 // Альтернативний Linux tmp
-		"/usr/tmp",                 // Ще один варіант
-		filepath.Join(".", ".tmp"), // Локальний .tmp в поточній директорії
-		filepath.Join(".", "tmp"),  // Локальний tmp
-	}
-
-	// Функція для перевірки чи каталог існує і чи є права на запис
-	checkTmpDir := func(dir string) bool {
-		// Перевіряємо існування
-		info, err := os.Stat(dir)
-		if os.IsNotExist(err) {
-			return false
-		}
-		if err != nil {
-			fmt.Printf("Error checking %s: %v\n", dir, err)
-			return false
-		}
-
-		// Перевіряємо, чи це директорія
-		if !info.IsDir() {
-			return false
-		}
-
-		// Перевіряємо права на запис створивши тимчасовий файл
-		testPath := filepath.Join(dir, fmt.Sprintf("test-%d", os.Getpid()))
-		f, err := os.Create(testPath)
-		if err != nil {
-			fmt.Printf("%s is not writable: %v\n", dir, err)
-			return false
-		}
-		f.Close()
-		os.Remove(testPath)
-
-		fmt.Printf("Found usable tmp directory: %s\n", dir)
-		return true
-	}
-
-	// Перевіряємо кожен каталог
-	for _, dir := range tmpDirs {
-		if checkTmpDir(dir) {
-			// Знайшли робочий каталог, встановлюємо змінні середовища
-			os.Setenv("TMPDIR", dir)
-			os.Setenv("TMP", dir)
-			os.Setenv("TEMP", dir)
-			fmt.Printf("Set TMPDIR=%s\n", dir)
-			// Знайшли робочий каталог, виходимо з циклу
-			return
-		}
-	}
-
-	// Якщо дійшли досюди, спробуємо створити хоча б один каталог
-
-	// Try multiple possible tmp directories
-	tmpDirs = []string{
-		filepath.Join(".", ".tmp"),
-		filepath.Join(".", "tmp"),
+	// Список всіх можливих тимчасових директорій
+	tempDirs := []string{
 		"/tmp",
 		"/var/tmp",
 		"/usr/tmp",
 		"/edx/app/xqwatcher/src/tmp",
+		"/edx/app/xqwatcher/src",
+		filepath.Join(os.TempDir(), "tmp"),
 	}
 
-	for _, dir := range tmpDirs {
+	// Створюємо всі директорії та встановлюємо права
+	for _, dir := range tempDirs {
 		err := os.MkdirAll(dir, 0777)
 		if err != nil {
-			// Просто логуємо помилку і продовжуємо
-			fmt.Printf("Could not create %s: %v\n", dir, err)
+			fmt.Printf("Помилка створення %s: %v\n", dir, err)
 			continue
+		}
+
+		// Перевіряємо, чи можемо писати
+		testFile := filepath.Join(dir, "test-write")
+		err = ioutil.WriteFile(testFile, []byte("test"), 0666)
+		if err == nil {
+			os.Remove(testFile) // видаляємо тестовий файл, якщо вдалося записати
+			fmt.Printf("Успішно створено та перевірено директорію: %s\n", dir)
 		} else {
-			fmt.Printf("Created %s directory\n", dir)
-			os.Setenv("TMPDIR", dir)
-			os.Setenv("TMP", dir)
-			os.Setenv("TEMP", dir)
-			fmt.Printf("Set TMPDIR=%s\n", dir)
-			return
+			fmt.Printf("Не вдалося записати в %s: %v\n", dir, err)
 		}
 	}
-
-	fmt.Println("WARNING: Could not find or create any usable temp directory")
-	fmt.Println("Application may fail if it needs to write temporary files")
 }
 
 func main() {
