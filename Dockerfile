@@ -35,6 +35,7 @@ COPY --from=builder /usr/tmp /usr/tmp
 COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
 COPY --from=builder /usr/lib/python-tmp /usr/lib/python-tmp
 COPY --from=builder /usr/local/lib/python-tmp /usr/local/lib/python-tmp
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 # Set all possible temp directories
 ENV TMPDIR=/tmp \
@@ -46,4 +47,5 @@ ENV TMPDIR=/tmp \
 # Create a volume for tmp
 VOLUME ["/tmp"]
 
-ENTRYPOINT ["/smaystr-bot"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["/smaystr-bot"]

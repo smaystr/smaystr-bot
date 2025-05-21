@@ -6,10 +6,32 @@ smaystr-bot
 
 # VCS
 .git
+.gitignore
 
 # IDE / editor
 .idea/
 .vscode/
 
 # OS files
-.DS_Store 
+.DS_Store
+
+# Docker
+docker-compose.yml
+
+# Go
+vendor/
+
+# Варіанти для тимчасових каталогів
+.tmp/
+tmp/
+.ultratmp/
+.forced_tmp/
+.xqtmp/
+
+# Python патчі для GlobalLogic, їх не треба в Docker
+python_patch.py
+xqwatcher_tempfile_patch.py
+fix_tmp_globallogic.py
+edx_minimal_fix.py
+quickfix.py
+ultimate_fix.py 
