@@ -30,8 +30,8 @@ RUN mkdir -p /usr/lib/python-tmp /usr/local/lib/python-tmp && \
     chmod -R 1777 /usr/lib/python-tmp /usr/local/lib/python-tmp
 
 # Створюємо додаткові директорії для більшої надійності
-RUN mkdir -p /dev/shm /run/shm /app/.tmp /.tmp && \
-    chmod -R 1777 /dev/shm /run/shm /app/.tmp /.tmp && \
+RUN mkdir -p /app/.tmp /.tmp && \
+    chmod -R 1777 /app/.tmp /.tmp && \
     echo "Created extra tmp directories"
 
 # Створюємо скрипт для діагностики проблем з тимчасовими директоріями
@@ -76,8 +76,6 @@ COPY --from=builder /usr/tmp /usr/tmp
 COPY --from=builder /edx/app/xqwatcher /edx/app/xqwatcher
 COPY --from=builder /usr/lib/python-tmp /usr/lib/python-tmp
 COPY --from=builder /usr/local/lib/python-tmp /usr/local/lib/python-tmp
-COPY --from=builder /dev/shm /dev/shm
-COPY --from=builder /run/shm /run/shm
 COPY --from=builder /app/.tmp /app/.tmp
 COPY --from=builder /.tmp /.tmp
 
