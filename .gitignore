@@ -44,3 +44,8 @@ logs/
 
 # Go build artefacts
 smaystr-bot*
+
+# CI/CD temp directories
+/.tmp/
+tmp/
+.tmprc
